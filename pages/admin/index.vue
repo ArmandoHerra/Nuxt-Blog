@@ -1,7 +1,12 @@
 <template>
   <div class="admin-page">
     <section class="new-post">
-      <app-button @click="$router.push('/admin/new-post')">Create Post</app-button>
+      <app-button @click="$router.push('/admin/new-post')">
+        Create Post
+      </app-button>
+      <app-button @click="onLogout">
+        Logout
+      </app-button>
     </section>
     <section class="existing-posts">
       <h1>Existing Posts</h1>
@@ -17,29 +22,20 @@ import AppButton from '@/components/UI/AppButton'
 import PostList from '@/components/Posts/PostList'
 export default {
   layout: 'admin',
-  middleware: 'auth',
+  middleware: ['check-auth', 'auth'],
   components: {
     AppButton,
     PostList
   },
-  async asyncData(context) {
-    return await context.$axios
-      .$get(`${process.env.firebaseUrl}/posts.json`)
-      .then(res => {
-        const postList = []
-        for (const key in res.current) {
-          postList.push({
-            ...res.current[key],
-            id: key
-          })
-        }
-        context.store.commit('setPostList', postList)
-      })
-      .catch(error => console.log(error))
+  computed: {
+    postList() {
+      return this.$store.getters.postList
+    }
   },
-  data() {
-    return {
-      postList: this.$store.getters.postList
+  methods: {
+    onLogout() {
+      this.$store.dispatch('logout')
+      this.$router.push('/admin/auth')
     }
   }
 }

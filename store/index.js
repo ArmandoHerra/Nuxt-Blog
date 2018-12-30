@@ -1,4 +1,5 @@
 import Vuex from 'vuex'
+import Cookie from 'js-cookie'
 
 const createStore = () => {
   return new Vuex.Store({
@@ -90,15 +91,51 @@ const createStore = () => {
             returnSecureToken: true
           })
           .then(result => {
+            const expirationDate =
+              new Date().getTime() + result.expiresIn * 1000
             vuexContext.commit('setToken', result.idToken)
-            vuexContext.dispatch('setLogoutTimer', result.expiresIn * 1000)
+            localStorage.setItem('token', result.idToken)
+            localStorage.setItem('expiration', expirationDate)
+            Cookie.set('jwt', result.idToken)
+            Cookie.set('expirationDate', expirationDate)
+            return this.$axios.$post('http://localhost:3000/api/track-data', {
+              data: { ...result }
+            })
           })
           .catch(error => console.log(error))
       },
-      setLogoutTimer(vuexContext, duration) {
-        setTimeout(() => {
-          vuexContext.commit('clearToken')
-        }, duration)
+      initAuth(vuexContext, req) {
+        let token
+        let expirationDate
+        if (req) {
+          if (!req.headers.cookie) return
+          const jwtCookie = req.headers.cookie
+            .split(';')
+            .find(c => c.trim().startsWith('jwt='))
+          if (!jwtCookie) return
+          token = jwtCookie.split('=')[1]
+          expirationDate = req.headers.cookie
+            .split(';')
+            .find(c => c.trim().startsWith('expirationDate='))
+            .split('=')[1]
+        } else {
+          token = localStorage.getItem('token')
+          expirationDate = localStorage.getItem('expiration')
+        }
+        if (new Date().getTime() > +expirationDate || !token) {
+          vuexContext.dispatch('logout')
+          return
+        }
+        vuexContext.commit('setToken', token)
+      },
+      logout(vuexContext) {
+        vuexContext.commit('clearToken')
+        Cookie.remove('jwt')
+        Cookie.remove('expirationDate')
+        if (process.client) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('expiration')
+        }
       }
     }
   })

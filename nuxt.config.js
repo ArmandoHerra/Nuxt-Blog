@@ -1,4 +1,5 @@
 const env = require('dotenv').config()
+const bodyParser = require('body-parser')
 const pkg = require('./package')
 
 module.exports = {
@@ -74,5 +75,6 @@ module.exports = {
   env: {
     firebaseUrl: process.env.API_URL,
     firebaseKey: process.env.API_KEY
-  }
+  },
+  serverMiddleware: [bodyParser.json(), '~/api']
 }
