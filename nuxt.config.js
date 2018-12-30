@@ -1,3 +1,4 @@
+const env = require('dotenv').config()
 const pkg = require('./package')
 
 module.exports = {
@@ -35,7 +36,7 @@ module.exports = {
   /*
   ** Plugins to load before mounting the App
   */
-  plugins: [],
+  plugins: ['~plugins/date-filter.js'],
 
   /*
   ** Nuxt.js modules
@@ -69,5 +70,9 @@ module.exports = {
         })
       }
     }
+  },
+  env: {
+    firebaseUrl: process.env.API_URL,
+    firebaseKey: process.env.API_KEY
   }
 }

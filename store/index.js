@@ -1,29 +1,31 @@
 import Vuex from 'vuex'
 
-// https://nuxt-blog-7294a.firebaseio.com/
-
 const createStore = () => {
   return new Vuex.Store({
     state: {
-      postList: []
+      postList: [],
+      token: null
     },
     getters: {
-      postList: state => state.postList
+      postList: state => state.postList,
+      isAuth: state => state.token != null
     },
     mutations: {
-      setPostList: (state, payload) => (state.postList = payload),
-      addPost: (state, payload) => state.postList.push(payload),
-      editPost(state, payload) {
+      setPostList: (state, postList) => (state.postList = postList),
+      addPost: (state, post) => state.postList.push(post),
+      editPost(state, editedPost) {
         const postIndex = state.postList.findIndex(
-          post => post.id === payload.id
+          post => post.id === editedPost.id
         )
-        state.postList[postIndex] = payload
-      }
+        state.postList[postIndex] = editedPost
+      },
+      setToken: (state, token) => (state.token = token),
+      clearToken: state => (state.token = null)
     },
     actions: {
-      async nuxtServerInit(vuexContext, context) {
+      async nuxtServerInit(vuexContext) {
         return await this.$axios
-          .$get('https://nuxt-blog-7294a.firebaseio.com/posts.json')
+          .$get(`${process.env.firebaseUrl}/posts.json`)
           .then(res => {
             const postsArray = []
             for (const key in res.current) {
@@ -45,7 +47,9 @@ const createStore = () => {
         }
         return this.$axios
           .$post(
-            'https://nuxt-blog-7294a.firebaseio.com/posts/current.json',
+            `${process.env.firebaseUrl}/posts/current.json?auth=${
+              vuexContext.state.token
+            }`,
             addedPost
           )
           .then(res => {
@@ -60,15 +64,41 @@ const createStore = () => {
         }
         return this.$axios
           .$put(
-            `https://nuxt-blog-7294a.firebaseio.com/posts/current/${
+            `${process.env.firebaseUrl}/posts/current/${
               editedPost.id
-            }.json`,
+            }.json?auth=${vuexContext.state.token}`,
             editedPost
           )
           .then(res => {
             vuexContext.commit('editPost', editedPost)
           })
           .catch(error => console.log(error))
+      },
+      authenticateUser(vuexContext, payload) {
+        let authURL = `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=${
+          process.env.firebaseKey
+        }`
+        if (!payload.isLogin) {
+          authURL = `https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key=${
+            process.env.firebaseKey
+          }`
+        }
+        return this.$axios
+          .$post(authURL, {
+            email: payload.email,
+            password: payload.password,
+            returnSecureToken: true
+          })
+          .then(result => {
+            vuexContext.commit('setToken', result.idToken)
+            vuexContext.dispatch('setLogoutTimer', result.expiresIn * 1000)
+          })
+          .catch(error => console.log(error))
+      },
+      setLogoutTimer(vuexContext, duration) {
+        setTimeout(() => {
+          vuexContext.commit('clearToken')
+        }, duration)
       }
     }
   })

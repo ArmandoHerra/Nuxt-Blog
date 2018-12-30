@@ -17,13 +17,14 @@ import AppButton from '@/components/UI/AppButton'
 import PostList from '@/components/Posts/PostList'
 export default {
   layout: 'admin',
+  middleware: 'auth',
   components: {
     AppButton,
     PostList
   },
   async asyncData(context) {
     return await context.$axios
-      .$get('https://nuxt-blog-7294a.firebaseio.com/posts.json')
+      .$get(`${process.env.firebaseUrl}/posts.json`)
       .then(res => {
         const postList = []
         for (const key in res.current) {

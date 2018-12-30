@@ -12,15 +12,14 @@
 import AdminPostForm from '@/components/Admin/AdminPostForm'
 export default {
   layout: 'admin',
+  middleware: 'auth',
   components: {
     AdminPostForm
   },
   async asyncData(context) {
     return await context.$axios
       .$get(
-        `https://nuxt-blog-7294a.firebaseio.com/posts/current/${
-          context.params.postId
-        }.json`
+        `${process.env.firebaseUrl}/posts/current/${context.params.postId}.json`
       )
       .then(res => {
         return {

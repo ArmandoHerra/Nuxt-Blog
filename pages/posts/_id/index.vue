@@ -4,7 +4,7 @@
       <h1>{{ post.title }}</h1>
       <img :src="post.thumbnail">
       <div class="post-details">
-        <div>Last updated on: {{ post.updatedDate }}</div>
+        <div>Last updated on: {{ post.updatedDate | date }}</div>
         <div>Written by: {{ post.author }}</div>
       </div>
       <p>{{ post.content }}</p>
@@ -20,9 +20,7 @@ export default {
   async asyncData(context) {
     return await context.$axios
       .$get(
-        `https://nuxt-blog-7294a.firebaseio.com/posts/current/${
-          context.params.id
-        }.json`
+        `${process.env.firebaseUrl}/posts/current/${context.params.id}.json`
       )
       .then(res => {
         return {
